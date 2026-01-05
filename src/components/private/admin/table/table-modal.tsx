@@ -65,8 +65,8 @@ export default function TableModal({
 
       const method = fields._id ? "PUT" : "POST";
       const endpoint = fields._id
-        ? `/api/tables?id=${fields._id}`
-        : "/api/tables";
+        ? `/api/admin/tables?id=${fields._id}`
+        : "/api/admin/tables";
 
       const res = await fetch(endpoint, {
         method,

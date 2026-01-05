@@ -30,7 +30,7 @@ export default function AdminTablesPage() {
 
   async function fetchSystemInfo() {
     try {
-      const res = await fetch("/api/system/info");
+      const res = await fetch("/api/admin/system/info");
       const data = await res.json();
       if (data.ok) {
         setBaseOrigin(data.origin);
@@ -45,7 +45,7 @@ export default function AdminTablesPage() {
   async function fetchTables() {
     try {
       setLoading(true);
-      const res = await fetch("/api/tables");
+      const res = await fetch("/api/admin/tables");
       const data = await res.json();
       if (data.ok) {
         setTables(data.tables);
@@ -75,7 +75,7 @@ export default function AdminTablesPage() {
   async function confirmDelete() {
     if (!toDeleteId) return;
     try {
-      const res = await fetch(`/api/tables?id=${toDeleteId}`, {
+      const res = await fetch(`/api/admin/tables?id=${toDeleteId}`, {
         method: "DELETE",
       });
       const data = await res.json();

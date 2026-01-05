@@ -7,7 +7,6 @@ import BentoFilter from "@/components/public/landing/bento-filter";
 import ItemCardPublic from "@/components/public/landing/item-card-public";
 
 export default function PublicMenuPage() {
- 
   const { items, loading } = useItems();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -39,12 +38,12 @@ export default function PublicMenuPage() {
   }, [items, searchQuery, activeCategory, categories]);
 
   return (
-    <div className="min-h-screen bg-[#FDFDFF] pb-32 selection:bg-indigo-100 selection:text-indigo-600">
+    <div className="pb-32">
       {/* 1. Dynamic Promo Banner */}
       <section className="px-6 pt-8">
         <div className="max-w-7xl mx-auto">
           <div className="relative h-40 md:h-64 w-full bg-slate-900 rounded-[40px] overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/50 to-transparent z-10" />
+            <div className="absolute inset-0 bg-linear-to-r from-indigo-900/50 to-transparent z-10" />
             <img
               src="https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=2070"
               className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"

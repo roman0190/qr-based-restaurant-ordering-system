@@ -23,7 +23,7 @@ export default function ImageUpload({
       setUploading(true);
       setProgress(0);
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/upload");
+      xhr.open("POST", "/api/admin/upload");
       xhr.setRequestHeader("Content-Type", "application/json");
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable)

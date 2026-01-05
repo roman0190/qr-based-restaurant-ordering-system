@@ -11,7 +11,7 @@ export function useItems() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/items");
+      const res = await fetch("/api/common/items");
       const json = await res.json();
 
       if (!json.ok) throw new Error(json.error);
