@@ -14,6 +14,26 @@ pnpm dev
 bun dev
 ```
 
+## Development: MongoDB / Mongoose setup 🔧
+
+1. Copy `.env.local.example` to `.env.local` and set `MONGODB_URI`.
+2. Start the dev server: `npm run dev`.
+3. Test the DB connection: `GET /api/mongo-test` (e.g. open http://localhost:3000/api/mongo-test). You should get a JSON response with `ok: true` and `userCount`.
+
+---
+
+### Image uploads
+
+- Admin image uploads are saved to `public/uploads` and the API returns a relative URL (e.g. `/uploads/167...png`).
+- When an item is updated with a new image or deleted, the old image file is removed from `public/uploads` automatically.
+- Upload endpoint: `POST /api/upload` accepts JSON { filename, data } where `data` is a base64 data URL (the Admin UI uses this method).
+
+### Frontend UI
+
+- Admin UI now uses shadcn-style components (Radix Dialog + Tailwind): `Dialog`, `Button`, `Input`, `Label`, etc.
+- Admin Items page `/admin/items` now supports modal-based create/edit with image uploads and delete with confirmation.
+
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
