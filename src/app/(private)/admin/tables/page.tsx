@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit, QrCode, Download, Printer } from "lucide-react";
+import { Plus, Trash2, Edit, QrCode, Printer } from "lucide-react";
 import TableModal from "@/components/private/admin/table/table-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { QRCodeCanvas } from "qrcode.react";
@@ -92,19 +92,67 @@ export default function AdminTablesPage() {
     }
   }
 
-  const downloadQR = (tableNumber: string, id: string) => {
-    const canvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
-    if (canvas) {
-      const pngUrl = canvas
-        .toDataURL("image/png")
-        .replace("image/png", "image/octet-stream");
-      let downloadLink = document.createElement("a");
-      downloadLink.href = pngUrl;
-      downloadLink.download = `Table-${tableNumber}-QR.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-    }
+  const printAllQRs = () => {
+    const qrItems = tables
+      .map((table) => {
+        const canvas = document.getElementById(
+          `qr-${table._id}`
+        ) as HTMLCanvasElement;
+        if (canvas) {
+          return {
+            number: table.number,
+            dataUrl: canvas.toDataURL(),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const windowContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print All QRs</title>
+          <style>
+            @page { size: auto; margin: 0; }
+            body { margin: 0; font-family: sans-serif; }
+            .page-break { page-break-after: always; }
+            .qr-container {
+              height: 100vh;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            h1 { font-size: 80px; margin: 0 0 30px 0; font-weight: 900; }
+            img { width: 600px; height: 600px; }
+            p { font-size: 24px; margin-top: 30px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
+          </style>
+        </head>
+        <body>
+          ${qrItems
+            .map(
+              (item) => `
+            <div class="qr-container page-break">
+              <h1>TABLE ${item!.number}</h1>
+              <img src="${item!.dataUrl}" />
+              <p>Scan to Order</p>
+            </div>
+          `
+            )
+            .join("")}
+          <script>
+            window.onload = () => { 
+              window.print(); 
+              setTimeout(() => window.close(), 100);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open("", "", "width=800,height=800");
+    printWindow?.document.write(windowContent);
+    printWindow?.document.close();
   };
 
   const printQR = (tableNumber: string, id: string) => {
@@ -130,11 +178,13 @@ export default function AdminTablesPage() {
               }
               h1 { font-size: 80px; margin: 0 0 30px 0; font-weight: 900; }
               img { width: 600px; height: 600px; }
+              p { font-size: 24px; margin-top: 30px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
             </style>
           </head>
           <body>
             <h1>TABLE ${tableNumber}</h1>
             <img src="${dataUrl}" />
+            <p>Scan to Order</p>
             <script>
               window.onload = () => { 
                 window.print(); 
@@ -161,13 +211,25 @@ export default function AdminTablesPage() {
             Manage your restaurant tables and generate QR codes.
           </p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 py-6 h-auto shadow-lg shadow-indigo-100 flex gap-2 font-bold"
-        >
-          <Plus className="h-5 w-5" />
-          Add New Table
-        </Button>
+        <div className="flex gap-3">
+          {tables.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={printAllQRs}
+              className="border-amber-200 text-amber-600 hover:bg-amber-50 rounded-2xl px-6 py-6 h-auto flex gap-2 font-bold"
+            >
+              <Printer className="h-5 w-5" />
+              Print All
+            </Button>
+          )}
+          <Button
+            onClick={openCreate}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 py-6 h-auto shadow-lg shadow-indigo-100 flex gap-2 font-bold"
+          >
+            <Plus className="h-5 w-5" />
+            Add New Table
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -212,7 +274,7 @@ export default function AdminTablesPage() {
                 <QRCodeCanvas
                   id={`qr-${table._id}`}
                   value={`${baseOrigin || window.location.origin}/order?table=${
-                    table._id
+                    table.number
                   }`}
                   size={200}
                   level={"H"}
@@ -225,15 +287,6 @@ export default function AdminTablesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadQR(table.number, table._id)}
-                  className="rounded-xl flex gap-2 font-bold text-xs py-5"
-                >
-                  <Download className="h-4 w-4" />
-                  Save
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -256,7 +309,7 @@ export default function AdminTablesPage() {
                   variant="destructive"
                   size="sm"
                   onClick={() => openDelete(table._id)}
-                  className="rounded-xl flex gap-2 font-bold text-xs py-5 bg-rose-50 text-rose-600 hover:bg-rose-100 border-none"
+                  className="rounded-xl flex gap-2 font-bold text-xs py-5 bg-rose-50 text-rose-600 hover:bg-rose-100 border-none col-span-2"
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete

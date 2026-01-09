@@ -10,7 +10,7 @@ export default function PublicHeader() {
             <UtensilsCrossed className="h-5 w-5" />
           </div>
           <span className="text-lg font-bold text-slate-900">
-            Gourmet<span className="text-indigo-600">QR</span>
+           Menu Studio
           </span>
         </Link>
 
