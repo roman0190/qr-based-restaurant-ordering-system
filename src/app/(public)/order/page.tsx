@@ -21,32 +21,39 @@ export default function PublicMenuPage() {
     "create"
   );
   const [showTreyDrawer, setShowTreyDrawer] = useState(false);
-  const { totalPrice, totalItems, sessionId, setSessionInfo } = useTrey();
+  const [initialized, setInitialized] = useState(false);
+  const { totalPrice, totalItems, sessionId, setSessionInfo, clearSession } =
+    useTrey();
 
   useEffect(() => {
-    if (tableNo) {
-      const savedSession = localStorage.getItem(`table_${tableNo}_session`);
-      if (savedSession) {
-        const parsed = JSON.parse(savedSession);
-        setSessionInfo(parsed.sessionId, parsed.pin, tableNo);
-      } else {
-        // Check table status
+    if (tableNo && !initialized) {
+      setInitialized(true);
+
+      // Check sessionStorage directly to avoid timing issues
+      const savedSession = sessionStorage.getItem(`table_${tableNo}_session`);
+
+      if (!savedSession && !sessionId) {
+        // No saved session and no active session - show modal
         checkTableStatus(tableNo);
       }
     }
-  }, [tableNo]);
+  }, [tableNo, initialized, sessionId]);
 
   const checkTableStatus = async (tableNumber: string) => {
     try {
       const response = await fetch(`/api/public/tables?table=${tableNumber}`);
       const data = await response.json();
 
+      console.log("Table status check:", data);
+
       if (response.ok && data.table) {
         // If table is occupied, require PIN validation
         if (data.table.status === "occupied") {
+          console.log("Setting mode to VALIDATE - table is occupied");
           setSessionMode("validate");
         } else {
           // If table is available, allow creating new session
+          console.log("Setting mode to CREATE - table is available");
           setSessionMode("create");
         }
         setShowSessionModal(true);

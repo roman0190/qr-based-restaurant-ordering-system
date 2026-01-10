@@ -7,6 +7,7 @@ interface TreyItem {
   price: number;
   quentity: number;
   isConfrim: boolean;
+  imageUrl?: string;
 }
 
 interface TreyContextType {
@@ -23,6 +24,7 @@ interface TreyContextType {
   pin: string | null;
   tableNumber: string | null;
   setSessionInfo: (sessionId: string, pin: string, tableNumber: string) => void;
+  clearSession: () => void;
 }
 
 const TreyContext = createContext<TreyContextType | undefined>(undefined);
@@ -33,17 +35,21 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
   const [pin, setPin] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<string | null>(null);
 
-  // Load session info from localStorage on mount
+  // Load session from sessionStorage on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const table = params.get("table");
     if (table) {
-      const savedSession = localStorage.getItem(`table_${table}_session`);
+      const savedSession = sessionStorage.getItem(`table_${table}_session`);
       if (savedSession) {
-        const parsed = JSON.parse(savedSession);
-        setSessionId(parsed.sessionId);
-        setPin(parsed.pin);
-        setTableNumber(table);
+        try {
+          const parsed = JSON.parse(savedSession);
+          setSessionId(parsed.sessionId);
+          setPin(parsed.pin);
+          setTableNumber(table);
+        } catch (error) {
+          console.error("Failed to parse saved session:", error);
+        }
       }
     }
   }, []);
@@ -63,8 +69,13 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
         `/api/public/tables/session?table=${tableNumber}&pin=${pin}`
       );
       const data = await response.json();
+
       if (response.ok && data.session) {
         setTrey(data.session.trey || []);
+      } else if (response.status === 404 || response.status === 401) {
+        // Session not found or invalid PIN - clear and reset
+        console.warn("Session not found or invalid, clearing local data");
+        clearSession();
       }
     } catch (error) {
       console.error("Failed to load trey:", error);
@@ -140,6 +151,23 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
     setSessionId(newSessionId);
     setPin(newPin);
     setTableNumber(newTableNumber);
+
+    // Save to sessionStorage
+    sessionStorage.setItem(
+      `table_${newTableNumber}_session`,
+      JSON.stringify({ sessionId: newSessionId, pin: newPin })
+    );
+  };
+
+  const clearSession = () => {
+    // Clear all session data
+    if (tableNumber) {
+      sessionStorage.removeItem(`table_${tableNumber}_session`);
+    }
+    setSessionId(null);
+    setPin(null);
+    setTableNumber(null);
+    setTrey([]);
   };
 
   // Auto-sync trey when it changes
@@ -168,6 +196,7 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
         pin,
         tableNumber,
         setSessionInfo,
+        clearSession,
       }}
     >
       {children}

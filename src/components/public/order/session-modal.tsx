@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ interface SessionModalProps {
   tableNumber: string;
   onSessionCreated: (sessionId: string, pin: string) => void;
   mode: "create" | "validate";
+  onModeChange?: (mode: "create" | "validate") => void;
 }
 
 export default function SessionModal({
@@ -27,12 +28,30 @@ export default function SessionModal({
   tableNumber,
   onSessionCreated,
   mode,
+  onModeChange,
 }: SessionModalProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [tablePin, setTablePin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [localMode, setLocalMode] = useState<"create" | "validate">(mode);
+
+  // Update local mode when prop changes
+  useEffect(() => {
+    setLocalMode(mode);
+  }, [mode]);
+
+  const currentMode = localMode;
+
+  const switchMode = () => {
+    const newMode = currentMode === "create" ? "validate" : "create";
+    setLocalMode(newMode);
+    setError("");
+    if (onModeChange) {
+      onModeChange(newMode);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +59,7 @@ export default function SessionModal({
     setLoading(true);
 
     try {
-      if (mode === "create") {
+      if (currentMode === "create") {
         // Create new session
         const response = await fetch(`/api/public/tables/session`, {
           method: "POST",
@@ -59,16 +78,6 @@ export default function SessionModal({
           throw new Error(data.error || "Failed to create session");
         }
 
-        // Store session info in localStorage
-        localStorage.setItem(
-          `table_${tableNumber}_session`,
-          JSON.stringify({
-            sessionId: data.session.id,
-            pin: tablePin,
-            customerName: data.session.customerName,
-          })
-        );
-
         onSessionCreated(data.session.id, tablePin);
         onOpenChange(false);
       } else {
@@ -82,16 +91,6 @@ export default function SessionModal({
         if (!response.ok) {
           throw new Error(data.error || "Invalid PIN");
         }
-
-        // Store session info in localStorage
-        localStorage.setItem(
-          `table_${tableNumber}_session`,
-          JSON.stringify({
-            sessionId: data.session.id,
-            pin: tablePin,
-            customerName: data.session.customerName,
-          })
-        );
 
         onSessionCreated(data.session.id, tablePin);
         onOpenChange(false);
@@ -108,17 +107,17 @@ export default function SessionModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black tracking-tight">
-            {mode === "create" ? "Start Your Order" : "Enter Your PIN"}
+            {currentMode === "create" ? "Start Your Order" : "Enter Your PIN"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "create"
+            {currentMode === "create"
               ? `Create a session for Table ${tableNumber}`
               : `Enter your PIN to access Table ${tableNumber}`}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {mode === "create" ? (
+          {currentMode === "create" ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-bold">
@@ -217,12 +216,25 @@ export default function SessionModal({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
               </>
-            ) : mode === "create" ? (
+            ) : currentMode === "create" ? (
               "Start Session"
             ) : (
               "Access Session"
             )}
           </Button>
+
+          {/* Mode Switch Link */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={switchMode}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-bold underline"
+            >
+              {currentMode === "create"
+                ? "Already have a session? Enter PIN"
+                : "Create new session instead"}
+            </button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

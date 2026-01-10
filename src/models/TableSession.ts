@@ -5,6 +5,7 @@ export interface TreyItem {
   price: number;
   quentity: number;
   isConfrim: boolean;
+  imageUrl?: string;
 }
 
 export interface TableSession extends Document {
@@ -30,6 +31,7 @@ const tableSessionSchema = new Schema<TableSession>(
         price: { type: Number, required: true },
         quentity: { type: Number, required: true },
         isConfrim: { type: Boolean, default: false },
+        imageUrl: { type: String },
       },
     ],
     IsValid: { type: Boolean, default: true },

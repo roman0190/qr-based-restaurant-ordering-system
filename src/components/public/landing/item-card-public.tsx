@@ -52,6 +52,7 @@ export default function ItemCardPublic({ item }: { item: Item }) {
             addToTrey({
               itemName: item.name,
               price: item.price,
+              imageUrl: item.imageUrl ?? undefined,
             })
           }
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-100 active:scale-95"
