@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 
 interface TreyItem {
   itemName: string;
@@ -34,6 +35,44 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pin, setPin] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isUpdatingFromSocketRef = useRef(false); // Track if update is from socket
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    if (tableNumber) {
+      // Connect to Socket.IO server
+      socketRef.current = io({
+        path: "/api/socket",
+      });
+
+      socketRef.current.on("connect", () => {
+        console.log("🔌 Socket connected:", socketRef.current?.id);
+        // Join table room
+        socketRef.current?.emit("join-table", tableNumber);
+      });
+
+      socketRef.current.on("disconnect", () => {
+        console.log("🔌 Socket disconnected");
+      });
+
+      // Listen for trey changes from other clients
+      socketRef.current.on("trey-changed", (newTrey: TreyItem[]) => {
+        console.log("📦 Trey updated from another client");
+        isUpdatingFromSocketRef.current = true;
+        setTrey(newTrey);
+        // Reset flag after state update
+        setTimeout(() => {
+          isUpdatingFromSocketRef.current = false;
+        }, 100);
+      });
+
+      return () => {
+        socketRef.current?.disconnect();
+      };
+    }
+  }, [tableNumber]);
 
   // Load session from sessionStorage on mount
   useEffect(() => {
@@ -94,6 +133,11 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         throw new Error("Failed to sync trey");
+      }
+
+      // Emit socket event for real-time update to other clients
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("trey-update", { tableNumber, trey });
       }
     } catch (error) {
       console.error("Failed to sync trey:", error);
@@ -172,11 +216,27 @@ export function TreyProvider({ children }: { children: React.ReactNode }) {
 
   // Auto-sync trey when it changes
   useEffect(() => {
+    // Skip sync if update came from socket
+    if (isUpdatingFromSocketRef.current) {
+      return;
+    }
+
     if (sessionId && pin && tableNumber && trey.length >= 0) {
-      const timeoutId = setTimeout(() => {
+      // Clear previous timeout
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+      
+      // Debounce sync to avoid too many requests
+      syncTimeoutRef.current = setTimeout(() => {
         syncTrey();
       }, 1000);
-      return () => clearTimeout(timeoutId);
+      
+      return () => {
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+      };
     }
   }, [trey, sessionId, pin, tableNumber]);
 

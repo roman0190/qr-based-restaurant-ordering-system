@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Edit, QrCode, Printer } from "lucide-react";
 import TableModal from "@/components/private/admin/table/table-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { QRCodeCanvas } from "qrcode.react";
+import { io, Socket } from "socket.io-client";
 
 type Table = {
   _id: string;
@@ -22,10 +23,36 @@ export default function AdminTablesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toDeleteId, setToDeleteId] = useState<string | null>(null);
   const [baseOrigin, setBaseOrigin] = useState("");
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     fetchTables();
     fetchSystemInfo();
+    
+    // Initialize Socket.IO connection
+    socketRef.current = io({
+      path: "/api/socket",
+    });
+
+    socketRef.current.on("connect", () => {
+      console.log("✅ Admin connected to Socket.IO:", socketRef.current?.id);
+    });
+
+    // Listen for table status updates
+    socketRef.current.on("table-status-updated", (data: any) => {
+      console.log("📢 Admin received table update:", data);
+      setTables((prevTables) =>
+        prevTables.map((table) =>
+          table.number === data.tableNumber.toString()
+            ? { ...table, status: data.status }
+            : table
+        )
+      );
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
   }, []);
 
   async function fetchSystemInfo() {

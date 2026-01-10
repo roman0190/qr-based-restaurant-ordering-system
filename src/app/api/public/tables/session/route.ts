@@ -3,6 +3,11 @@ import TableSessionModel from "@/models/TableSession";
 import TableModel from "@/models/Table";
 import dbConnect from "@/lib/mongoose";
 
+// Helper to get Socket.IO instance
+function getIO() {
+  return (global as any).io;
+}
+
 // POST - Create new table session
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +55,19 @@ export async function POST(request: NextRequest) {
     // Update table status to occupied
     table.status = "occupied";
     await table.save();
+
+    // Emit Socket.IO event to notify admin panel
+    const io = getIO();
+    if (io) {
+      // Broadcast to all connected clients (especially admin)
+      io.emit("table-status-updated", {
+        tableNumber,
+        status: "occupied",
+        customerName,
+        customerPhone,
+      });
+      console.log(`📢 Table ${tableNumber} occupied - broadcasted to all clients`);
+    }
 
     return NextResponse.json(
       {
@@ -212,6 +230,18 @@ export async function DELETE(request: NextRequest) {
     if (table) {
       table.status = "available";
       await table.save();
+    }
+
+    // Emit Socket.IO event to notify admin panel
+    const io = getIO();
+    if (io) {
+      io.emit("table-status-updated", {
+        tableNumber,
+        status: "available",
+        customerName: null,
+        customerPhone: null,
+      });
+      console.log(`📢 Broadcasted table ${tableNumber} is now available`);
     }
 
     return NextResponse.json({
